@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [CreateAssetMenu]
 public class ParticleFactory : ScriptableObject
 {
     [SerializeField] HeatmapParticle prefab;
+    [SerializeField, Tooltip("When pooled objects drop below this, spawn in bulk in a coroutine. Set negative to disable bulk spawning")] int minCount = 50;
 
     [System.NonSerialized] List<HeatmapParticle> pool;
     private Scene poolScene;
@@ -35,7 +37,9 @@ public class ParticleFactory : ScriptableObject
         poolScene = SceneManager.CreateScene(name);
     }
 
-    public HeatmapParticle Get(HeatmapParticleSystem owningObject)
+
+
+    public HeatmapParticle Get(MonoBehaviour owningObject)
     {
         HeatmapParticle instance;
         if(pool == null)
@@ -43,7 +47,7 @@ public class ParticleFactory : ScriptableObject
             CreatePool();
         }
         int lastIndex = pool.Count - 1;
-        if(lastIndex < 50 && !isSpawningMany)
+        if(lastIndex < minCount && !isSpawningMany)
         {
             isSpawningMany = true;
             owningObject.StartCoroutine(SpawnMany());
@@ -78,18 +82,19 @@ public class ParticleFactory : ScriptableObject
 
     private IEnumerator SpawnMany()
     {
+        Debug.Log("Batch spawning, pool count: " + pool.Count);
         if (pool == null)
         {
             CreatePool();
         }
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < minCount * 2; i++)
         {
             HeatmapParticle instance;
             instance = Instantiate(prefab);
             SceneManager.MoveGameObjectToScene(
                     instance.gameObject, poolScene
                 );
-            instance.gameObject.SetActive(false);
+            Reclaim(instance);
             if (i % 3 == 0) yield return new WaitForEndOfFrame();
         }
         isSpawningMany = false;

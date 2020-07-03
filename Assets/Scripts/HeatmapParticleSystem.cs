@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class HeatmapParticleSystem : MonoBehaviour
 {
@@ -10,12 +11,16 @@ public class HeatmapParticleSystem : MonoBehaviour
     [SerializeField] Camera cam;
     [SerializeField] ParticleFactory factory;
 
+    [SerializeField] List<HeatmapParticle> particles;
+    [SerializeField] Text debugText;
+
     Collider[] collisions = new Collider[25];
 
     private float radius;
 
     private void Start()
     {
+        particles = new List<HeatmapParticle>();
         radius = particlePrefab.transform.localScale.x;
     }
 
@@ -29,6 +34,9 @@ public class HeatmapParticleSystem : MonoBehaviour
         {
             StartCoroutine(ProcessHit(hit));
         }
+#if UNITY_EDITOR
+        if (debugText) debugText.text = particles.Count.ToString();
+#endif
 
     }
 
@@ -48,7 +56,9 @@ public class HeatmapParticleSystem : MonoBehaviour
 
         if (!hitParticle)
         {
-            factory.Get(this).transform.position = hit.point;
+            HeatmapParticle particle = factory.Get(this);
+            particle.transform.position = hit.point;
+            particles.Add(particle);
         }
     }
 

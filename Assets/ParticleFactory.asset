@@ -9,7 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 25a7b2d1ed86857408244fb65c7cb511, type: 3}
+  m_Script: {fileID: 11500000, guid: bad2d5f072c1f3d458a7469bc8278d4a, type: 3}
   m_Name: ParticleFactory
   m_EditorClassIdentifier: 
   prefab: {fileID: 3498586226292998805, guid: e4df605d7cbc29049b6c82b87f8bef42, type: 3}
+  minCount: 25
