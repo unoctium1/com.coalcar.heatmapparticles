@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HeatmapParticle : MonoBehaviour
+public class HeatmapParticle : PersistableObject
 {
 
     static int heightProperty = Shader.PropertyToID("_Height");
@@ -19,6 +19,18 @@ public class HeatmapParticle : MonoBehaviour
             height = Mathf.Clamp(value, 0.01f, 1.0f);
             SetHeightVal(height);
         }
+    }
+
+    public override void Save(DataWriter writer)
+    {
+        base.Save(writer);
+        writer.Write(height);
+    }
+
+    public override void Load(DataReader read)
+    {
+        base.Load(read);
+        height = read.ReadFloat();
     }
 
 #if UNITY_EDITOR

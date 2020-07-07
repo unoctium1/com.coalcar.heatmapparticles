@@ -47,7 +47,7 @@ public class ParticleFactory : ScriptableObject
             CreatePool();
         }
         int lastIndex = pool.Count - 1;
-        if(lastIndex < minCount && !isSpawningMany)
+        if(minCount > -1 && lastIndex < minCount && !isSpawningMany)
         {
             isSpawningMany = true;
             owningObject.StartCoroutine(SpawnMany());
@@ -82,12 +82,33 @@ public class ParticleFactory : ScriptableObject
 
     private IEnumerator SpawnMany()
     {
-        Debug.Log("Batch spawning, pool count: " + pool.Count);
+        //Debug.Log("Batch spawning, pool count: " + pool.Count);
         if (pool == null)
         {
             CreatePool();
         }
         for (int i = 0; i < minCount * 2; i++)
+        {
+            HeatmapParticle instance;
+            instance = Instantiate(prefab);
+            SceneManager.MoveGameObjectToScene(
+                    instance.gameObject, poolScene
+                );
+            Reclaim(instance);
+            if (i % 3 == 0) yield return new WaitForEndOfFrame();
+        }
+        isSpawningMany = false;
+    }
+
+    public IEnumerator SpawnMany(int targetPoolSize)
+    {
+        //Debug.Log("Batch spawning, pool count: " + pool.Count);
+        if (pool == null)
+        {
+            CreatePool();
+        }
+        int toSpawn = targetPoolSize - pool.Count + minCount;
+        for (int i = 0; i < toSpawn; i++)
         {
             HeatmapParticle instance;
             instance = Instantiate(prefab);

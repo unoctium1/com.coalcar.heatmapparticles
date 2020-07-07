@@ -4,51 +4,125 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public class Logger : MonoBehaviour
+public class Logger : PersistableObject
 {
-    [SerializeField] float waitTime = 0.03f;
+    //[SerializeField] float waitTime = 0.03f;
 
-    //List<Vector3> points;
+    List<SmallVector3> points;
 
     [SerializeField] Text debugText = null;
-    [SerializeField] bool log = true;
-
+    [SerializeField, Tooltip("Set true to log on start")] bool log = false;
+    [SerializeField] Camera cam;
+    [SerializeField, Tooltip("Controls speed of polling")] float waitTime;
+    float timer = 0.0f;
     [SerializeField] InputSource input;
+    [SerializeField] bool realtime;
 
-    public LogEvent onLogEvent;
+    public bool Realtime { get => realtime; set => realtime = value; }
+    public bool Log { get => log; set => log = value; }
 
-    delegate Vector3 GetInputPoint();
+    public VectorEvent onLogEvent;
+    public IntEvent onPrepPlayback;
+
+    delegate bool GetInputPoint(Camera cam, out Vector3 point);
     GetInputPoint getter;
 
     private void Awake()
     {
-        if(onLogEvent == null) onLogEvent = new LogEvent();
-    }
+        if(onLogEvent == null) onLogEvent = new VectorEvent();
+        if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
+        points = new List<SmallVector3>();
 
-    // Start is called before the first frame update
-    void Start()
-    {
         if (input == InputSource.mousePos) getter = GetMousePos;
-
-        //points = new List<Vector3>();
-        StartCoroutine(LogPos());
     }
 
-    IEnumerator LogPos()
+    public void Playback()
     {
-        while (log)
-        {
-            Vector3 point = getter();
+        StartCoroutine(PlaybackPoints());
+    }
 
-            onLogEvent.Invoke(point);
-            if (debugText) debugText.text = point.ToString();
-            yield return new WaitForSecondsRealtime(waitTime);
+    private void FixedUpdate()
+    {
+        if (log)
+        {
+            timer += Time.deltaTime;
+            if(timer > waitTime)
+            {
+                if(getter(cam, out Vector3 point))
+                {
+                    SmallVector3 toSave = new SmallVector3(point);
+                    if (realtime)
+                    {
+                        onLogEvent.Invoke(toSave.GetVector3());
+                    }
+                    else
+                    {
+                        points.Add(toSave);
+                    }
+                    debugText.text = toSave.ToString();
+                }
+                timer -= waitTime;
+            }
         }
     }
 
-    private static Vector3 GetMousePos()
+    private IEnumerator PlaybackPoints()
     {
-        return Input.mousePosition;
+        onPrepPlayback.Invoke(points.Count);
+        bool resetLog = false;
+        if (log)
+        {
+            log = false;
+            resetLog = true;
+        }
+        for(int i = 0; i < points.Count; i++)
+        {
+            yield return new WaitForFixedUpdate(); 
+            onLogEvent.Invoke(points[i].GetVector3());
+
+        }
+        points.Clear();
+        if (resetLog) log = true;
+    }
+
+    private static bool GetMousePos(Camera cam, out Vector3 point)
+    {
+        point = Input.mousePosition;
+        point.z = cam.nearClipPlane;
+        Ray r = cam.ScreenPointToRay(point);
+
+        if (Physics.Raycast(r, out RaycastHit hit))
+        {
+            point = hit.point;
+            return true;
+        }
+        else { return false; }
+    }
+
+    public override void Load(DataReader reader)
+    {
+        int count = reader.ReadInt();
+        points = new List<SmallVector3>();
+        for(int i = 0; i < count; i++)
+        {
+            points.Add(SmallVector3.Load(reader));
+        }
+    }
+
+    public override void Save(DataWriter writer)
+    {
+        writer.Write(points.Count);
+        for (int i = 0; i < points.Count; i++)
+        {
+            points[i].Save(writer);
+        }
+
+        
+    }
+
+    public void Clear()
+    {
+        points.Clear();
     }
 
 }
@@ -59,7 +133,13 @@ public enum InputSource
 }
 
 [System.Serializable]
-public class LogEvent : UnityEvent<Vector3>
+public class VectorEvent : UnityEvent<Vector3>
+{
+
+}
+
+[System.Serializable]
+public class IntEvent : UnityEvent<int>
 {
 
 }
