@@ -1,13 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using HeatmapParticles;
+using Logger = HeatmapParticles.Logger;
 
+
+[ExecuteInEditMode]
 public class GameManager : PersistableObject
 {
 
     Saver saver;
-    [SerializeField] Logger logger;
-    [SerializeField] HeatmapParticleSystem system;
+    [SerializeField] public Logger logger;
+    [SerializeField] public HeatmapParticleSystem system;
 
     // Start is called before the first frame update
     void Start()

@@ -1,145 +1,156 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Dynamic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public class Logger : PersistableObject
+namespace HeatmapParticles
 {
-    //[SerializeField] float waitTime = 0.03f;
-
-    List<SmallVector3> points;
-
-    [SerializeField] Text debugText = null;
-    [SerializeField, Tooltip("Set true to log on start")] bool log = false;
-    [SerializeField] Camera cam;
-    [SerializeField, Tooltip("Controls speed of polling")] float waitTime;
-    float timer = 0.0f;
-    [SerializeField] InputSource input;
-    [SerializeField] bool realtime;
-
-    public bool Realtime { get => realtime; set => realtime = value; }
-    public bool Log { get => log; set => log = value; }
-
-    public VectorEvent onLogEvent;
-    public IntEvent onPrepPlayback;
-
-    delegate bool GetInputPoint(Camera cam, out Vector3 point);
-    GetInputPoint getter;
-
-    private void Awake()
+    public class Logger : PersistableObject
     {
-        if(onLogEvent == null) onLogEvent = new VectorEvent();
-        if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
-        points = new List<SmallVector3>();
+        //[SerializeField] float waitTime = 0.03f;
 
-        if (input == InputSource.mousePos) getter = GetMousePos;
-    }
+        [SerializeField] public PointsList points;
 
-    public void Playback()
-    {
-        StartCoroutine(PlaybackPoints());
-    }
+        [SerializeField] Text debugText = null;
+        [SerializeField, Tooltip("Set true to log on start")] bool log = false;
+        [SerializeField] Camera cam;
+        [SerializeField, Tooltip("Controls speed of polling")] float waitTime;
+        float timer = 0.0f;
+        [SerializeField] InputSource input;
+        [SerializeField] bool realtime;
 
-    private void FixedUpdate()
-    {
-        if (log)
+
+        public bool Realtime { get => realtime; set => realtime = value; }
+        public bool Log { get => log; set => log = value; }
+
+        public VectorEvent onLogEvent;
+        public IntEvent onPrepPlayback;
+
+        delegate bool GetInputPoint(Camera cam, out Vector3 point);
+        GetInputPoint getter;
+
+        private void Awake()
         {
-            timer += Time.deltaTime;
-            if(timer > waitTime)
+            if (onLogEvent == null) onLogEvent = new VectorEvent();
+            if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
+            if (points != null) points = ScriptableObject.CreateInstance<PointsList>();
+
+            if (input == InputSource.mousePos) getter = GetMousePos;
+        }
+
+        public void Playback()
+        {
+            StartCoroutine(PlaybackPoints());
+        }
+
+        private void FixedUpdate()
+        {
+            if (log)
             {
-                if(getter(cam, out Vector3 point))
+                timer += Time.deltaTime;
+                if (timer > waitTime)
                 {
-                    SmallVector3 toSave = new SmallVector3(point);
-                    if (realtime)
+                    if (getter(cam, out Vector3 point))
                     {
-                        onLogEvent.Invoke(toSave.GetVector3());
+                        SmallVector3 toSave = new SmallVector3(point);
+                        if (realtime)
+                        {
+                            onLogEvent.Invoke(toSave.GetVector3());
+                        }
+                        else
+                        {
+                            points.Add(toSave);
+                        }
+                        debugText.text = toSave.ToString();
                     }
-                    else
-                    {
-                        points.Add(toSave);
-                    }
-                    debugText.text = toSave.ToString();
+                    timer -= waitTime;
                 }
-                timer -= waitTime;
             }
         }
-    }
 
-    private IEnumerator PlaybackPoints()
-    {
-        onPrepPlayback.Invoke(points.Count);
-        bool resetLog = false;
-        if (log)
+        private IEnumerator PlaybackPoints()
         {
-            log = false;
-            resetLog = true;
-        }
-        for(int i = 0; i < points.Count; i++)
-        {
-            yield return new WaitForFixedUpdate(); 
-            onLogEvent.Invoke(points[i].GetVector3());
+            onPrepPlayback.Invoke(points.Count);
+            bool resetLog = false;
+            if (log)
+            {
+                log = false;
+                resetLog = true;
+            }
+            for (int i = 0; i < points.Count; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                onLogEvent.Invoke(points[i].GetVector3());
 
-        }
-        points.Clear();
-        if (resetLog) log = true;
-    }
-
-    private static bool GetMousePos(Camera cam, out Vector3 point)
-    {
-        point = Input.mousePosition;
-        point.z = cam.nearClipPlane;
-        Ray r = cam.ScreenPointToRay(point);
-
-        if (Physics.Raycast(r, out RaycastHit hit))
-        {
-            point = hit.point;
-            return true;
-        }
-        else { return false; }
-    }
-
-    public override void Load(DataReader reader)
-    {
-        int count = reader.ReadInt();
-        points = new List<SmallVector3>();
-        for(int i = 0; i < count; i++)
-        {
-            points.Add(SmallVector3.Load(reader));
-        }
-    }
-
-    public override void Save(DataWriter writer)
-    {
-        writer.Write(points.Count);
-        for (int i = 0; i < points.Count; i++)
-        {
-            points[i].Save(writer);
+            }
+            points.Clear();
+            if (resetLog) log = true;
         }
 
-        
+        private static bool GetMousePos(Camera cam, out Vector3 point)
+        {
+            point = Input.mousePosition;
+            point.z = cam.nearClipPlane;
+            Ray r = cam.ScreenPointToRay(point);
+
+            if (Physics.Raycast(r, out RaycastHit hit))
+            {
+                point = hit.point;
+                return true;
+            }
+            else { return false; }
+        }
+
+        public override void Load(DataReader reader)
+        {
+            Debug.Log("Loading logger");
+            int count = reader.ReadInt();
+            if (points == null) points = ScriptableObject.CreateInstance<PointsList>();
+            else points.Clear();  
+            for (int i = 0; i < count; i++)
+            {
+                points.Add(SmallVector3.Load(reader));
+            }
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        }
+
+        public override void Save(DataWriter writer)
+        {
+            writer.Write(points.Count);
+            for (int i = 0; i < points.Count; i++)
+            {
+                points[i].Save(writer);
+            }
+
+
+        }
+
+        public void Clear()
+        {
+            points.Clear();
+        }
+
     }
 
-    public void Clear()
+    public enum InputSource
     {
-        points.Clear();
+        mousePos
     }
 
-}
+    [System.Serializable]
+    public class VectorEvent : UnityEvent<Vector3>
+    {
 
-public enum InputSource
-{
-    mousePos
-}
+    }
 
-[System.Serializable]
-public class VectorEvent : UnityEvent<Vector3>
-{
+    [System.Serializable]
+    public class IntEvent : UnityEvent<int>
+    {
 
-}
-
-[System.Serializable]
-public class IntEvent : UnityEvent<int>
-{
-
+    }
 }

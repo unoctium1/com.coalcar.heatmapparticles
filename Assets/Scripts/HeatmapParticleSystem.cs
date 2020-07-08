@@ -1,122 +1,145 @@
-﻿using Sample;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class HeatmapParticleSystem : PersistableObject
+namespace HeatmapParticles
 {
-    [SerializeField] HeatmapParticle particlePrefab;
-    [SerializeField] float incrementVal = 0.05f;
-    [SerializeField] ParticleFactory factory;
-
-    [SerializeField] List<HeatmapParticle> particles;
-    [SerializeField] Text debugText;
-    [SerializeField] Vector3 currPoint;
-
-    Collider[] collisions = new Collider[25];
-
-    private float radius;
-
-    private void Start()
+    [ExecuteInEditMode]
+    public class HeatmapParticleSystem : PersistableObject
     {
-        particles = new List<HeatmapParticle>();
-        radius = particlePrefab.transform.localScale.x/2;
-    }
+        [SerializeField] HeatmapParticle particlePrefab;
+        [SerializeField] public float incrementVal = 0.05f;
+        [SerializeField] ParticleFactory factory;
 
-    public void BulkSpawn(int toSpawn)
-    {
-        StartCoroutine(factory.SpawnMany(toSpawn));
-    }
+        [SerializeField] List<HeatmapParticle> particles;
+        [SerializeField] Text debugText;
+        [SerializeField] Vector3 currPoint;
 
-    public void SpawnAtPoint(Vector3 point)
-    {
+        Collider[] collisions = new Collider[25];
 
-        ProcessPoint(point);
-        //StartCoroutine(ProcessPoint(point));
+        private float radius;
+
+        private void Start()
+        {
+            particles = new List<HeatmapParticle>();
+            radius = particlePrefab.transform.localScale.x / 2;
+        }
+
+        public void BulkSpawn(int toSpawn)
+        {
+            StartCoroutine(factory.SpawnMany(toSpawn));
+        }
+
+        public void SpawnAtPoint(Vector3 point)
+        {
+
+            ProcessPoint(point);
+            //StartCoroutine(ProcessPoint(point));
 #if UNITY_EDITOR
-        if (debugText) debugText.text = particles.Count.ToString();
+            if (debugText) debugText.text = particles.Count.ToString();
 #endif
 
-    }
+        }
 
-    private void ProcessPoint(Vector3 point)
-    {
-        currPoint = point;
-        int hits = Physics.OverlapSphereNonAlloc(point, radius, collisions);
-        bool hitParticle = false;
-        for (int i = 0; i < hits; i++)
+        private void ProcessPoint(Vector3 point)
         {
-            if (collisions[i].TryGetComponent(out HeatmapParticle particle))
+            currPoint = point;
+            int hits = Physics.OverlapSphereNonAlloc(point, radius, collisions);
+            bool hitParticle = false;
+            for (int i = 0; i < hits; i++)
             {
-                hitParticle = true;
-                particle.Height += incrementVal;
+                if (collisions[i].TryGetComponent(out HeatmapParticle particle))
+                {
+                    hitParticle = true;
+                    particle.Height += incrementVal;
+                }
+                //yield return new WaitForEndOfFrame();
             }
-            //yield return new WaitForEndOfFrame();
+
+            if (!hitParticle)
+            {
+                HeatmapParticle particle = factory.Get(this);
+                particle.transform.position = point;
+                particles.Add(particle);
+            }
         }
 
-        if (!hitParticle)
-        {
-            HeatmapParticle particle = factory.Get(this);
-            particle.transform.position = point;
-            particles.Add(particle);
-        }
-    }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (currPoint != null)
+#if UNITY_EDITOR
+        public void CreateParticleWithHeight(Vector3 point, float height = 0.01f)
         {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(currPoint, radius);
-        }
-    }
-
-    public void HideParticles()
-    {
-        foreach (HeatmapParticle p in particles)
-        {
-            p.gameObject.SetActive(false);
-        }
-    }
-
-    public void UnhideParticles()
-    {
-        foreach (HeatmapParticle p in particles)
-        {
-            p.gameObject.SetActive(true);
-        }
-    }
-
-    public override void Load(DataReader reader)
-    {
-        int count = reader.ReadInt();
-        particles = new List<HeatmapParticle>();
-        BulkSpawn(count);
-        for(int i = 0; i < count; i++)
-        {
-            HeatmapParticle p = factory.Get(this);
-            p.Load(reader);
+            if (particles == null) particles = new List<HeatmapParticle>();
+            HeatmapParticle p = factory.GetInEditor();
+            p.transform.position = point;
+            p.Height = height;
             particles.Add(p);
         }
-    }
+#endif
 
-    public override void Save(DataWriter writer)
-    {
-        writer.Write(particles.Count);
-        for(int i = 0; i < particles.Count; i++)
+        private void OnDrawGizmosSelected()
         {
-            particles[i].Save(writer);
+            if (currPoint != null)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(currPoint, radius);
+            }
         }
-    }
 
-    public void Clear()
-    {
-        foreach(HeatmapParticle p in particles)
+        public void HideParticles()
         {
-            factory.Reclaim(p);
+            foreach (HeatmapParticle p in particles)
+            {
+                p.gameObject.SetActive(false);
+            }
         }
-        particles.Clear();
-    }
 
+        public void UnhideParticles()
+        {
+            foreach (HeatmapParticle p in particles)
+            {
+                p.gameObject.SetActive(true);
+            }
+        }
+
+        public override void Load(DataReader reader)
+        {
+            int count = reader.ReadInt();
+
+            
+            particles = new List<HeatmapParticle>();
+            if (Application.isPlaying)
+                BulkSpawn(count);
+            for (int i = 0; i < count; i++)
+            {
+                HeatmapParticle p = Application.isPlaying ? factory.Get(this) : factory.GetInEditor();
+                p.Load(reader);
+                particles.Add(p);
+            }
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorUtility.SetDirty(this);
+#endif
+
+        }
+
+        public override void Save(DataWriter writer)
+        {
+            writer.Write(particles.Count);
+            for (int i = 0; i < particles.Count; i++)
+            {
+                particles[i].Save(writer);
+            }
+        }
+
+        public void Clear()
+        {
+            foreach (HeatmapParticle p in particles)
+            {
+                factory.Reclaim(p);
+            }
+            particles.Clear();
+        }
+
+    }
 }

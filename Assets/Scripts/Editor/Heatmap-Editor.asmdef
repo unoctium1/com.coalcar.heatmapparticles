@@ -1,0 +1,16 @@
+{
+    "name": "Heatmap-Editor",
+    "references": [
+        "GUID:93915f66e7300ba43962c257fcb22355"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}
