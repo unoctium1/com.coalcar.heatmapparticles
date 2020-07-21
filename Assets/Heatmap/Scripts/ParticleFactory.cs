@@ -60,7 +60,7 @@ namespace HeatmapParticles
         private void CreatePoolInEditor()
         {
             pool = new List<HeatmapParticle>();
-            if (Application.isEditor)
+            if (!Application.isEditor)
             {
                 poolScene = SceneManager.GetSceneByName(name);
                 if (poolScene.isLoaded)

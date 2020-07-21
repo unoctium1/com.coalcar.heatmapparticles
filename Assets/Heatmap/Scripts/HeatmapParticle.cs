@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace HeatmapParticles
 {
+    [ExecuteInEditMode]
     public class HeatmapParticle : PersistableObject
     {
 

@@ -7,7 +7,7 @@ public struct SmallVector3
 {
     const string f = "({0},{1},{2})";
     //Set precision based on how large the world is. For 10f, it cannot be larger than 3000 units in any direction
-    const float precision = 10f;
+    //const float precision = 10f;
     public float _x;
     public float _y;
     public float _z;
@@ -31,7 +31,8 @@ public struct SmallVector3
 
     private static float Round(float f)
     {
-        return Mathf.Round(f * precision) / precision;
+        float p = 1f / GameManager.Instance.particleSize;
+        return Mathf.Round(f * p) / p;
     }
 
     public override string ToString()
@@ -41,18 +42,22 @@ public struct SmallVector3
 
     public void Save(DataWriter writer)
     {
-        writer.Write((short)(_x * precision));
-        writer.Write((short)(_y * precision));
-        writer.Write((short)(_z * precision));
+        //This should ensure that no matter what, smallVec3 is always saved as minimally sized int
+        //Probably would be some weird behavior if particle size is changed between loading
+        float p = 1f / GameManager.Instance.particleSize;
+        writer.Write((short)(_x * p));
+        writer.Write((short)(_y * p));
+        writer.Write((short)(_z * p));
     }
 
     public static SmallVector3 Load(DataReader reader)
     {
+        float p = 1f / GameManager.Instance.particleSize;
         return new SmallVector3
         {
-            _x = reader.ReadShort() / precision,
-            _y = reader.ReadShort() / precision,
-            _z = reader.ReadShort() / precision
+            _x = reader.ReadShort() / p,
+            _y = reader.ReadShort() / p,
+            _z = reader.ReadShort() / p
         };
     }
 }

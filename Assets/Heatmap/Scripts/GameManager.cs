@@ -3,19 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 using HeatmapParticles;
 using Logger = HeatmapParticles.Logger;
-
+using System.Runtime.CompilerServices;
 
 [ExecuteInEditMode]
 public class GameManager : PersistableObject
 {
-
+    public static GameManager Instance { get; set; }
     Saver saver;
     [SerializeField] public Logger logger;
     [SerializeField] public HeatmapParticleSystem system;
 
-    // Start is called before the first frame update
-    void Start()
+#if UNITY_EDITOR
+    [SerializeField] public GameObject particlePrefab;
+#endif
+
+    public float particleSize;
+
+
+    void Awake()
     {
+        if (Instance == null) Instance = this;
         saver = GetComponent<Saver>();
     }
 

@@ -4,6 +4,7 @@ using UnityEngine;
 using Logger = HeatmapParticles.Logger;
 using System.IO;
 using System.Collections.Generic;
+using System;
 
 [CustomEditor(typeof (GameManager)), CanEditMultipleObjects]
 public class GameManagerInspector : Editor
@@ -13,20 +14,25 @@ public class GameManagerInspector : Editor
 
     private SerializedProperty logger;
     private SerializedProperty system;
+    private SerializedProperty size;
+    private SerializedProperty particlePrefab;
     private PointsList pointsList;
 
     public void OnEnable()
     {
         logger = serializedObject.FindProperty("logger");
         system = serializedObject.FindProperty("system");
+        size = serializedObject.FindProperty("particleSize");
+        particlePrefab = serializedObject.FindProperty("particlePrefab");
     }
 
     public override void OnInspectorGUI()
     {
 
         serializedObject.Update();
-        EditorGUILayout.ObjectField(logger, new GUIContent("Logger"));
-        EditorGUILayout.ObjectField(system, new GUIContent("System"));
+        EditorGUILayout.PropertyField(logger, new GUIContent("Logger"));
+        EditorGUILayout.PropertyField(system, new GUIContent("System"));
+        
         //EditorGUILayout.ObjectField(pointsList, new GUIContent("Tracked Points"));
         
 
@@ -47,7 +53,23 @@ public class GameManagerInspector : Editor
             Save(gm);
         }
 
+        EditorGUILayout.PropertyField(size, new GUIContent("Particle Size"));
+        EditorGUILayout.PropertyField(particlePrefab, new GUIContent("Particle Prefab"));
         serializedObject.ApplyModifiedProperties();
+        if (particlePrefab.objectReferenceValue == null) GUI.enabled = false;
+        if (GUILayout.Button(new GUIContent("Apply Particle Size")))
+        {
+            ApplyParticleSize(size.floatValue);
+        }
+        GUI.enabled = true;
+        
+    }
+
+    private void ApplyParticleSize(float size)
+    {
+        GameObject particle = particlePrefab.objectReferenceValue as GameObject;
+        particle.transform.localScale = Vector3.one * size;
+        PrefabUtility.SavePrefabAsset(particle);
     }
 
     private void Load(GameManager gm)

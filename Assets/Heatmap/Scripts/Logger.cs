@@ -21,6 +21,7 @@ namespace HeatmapParticles
         [SerializeField] InputSource input;
         [SerializeField] bool realtime;
 
+        private int layerMask;
 
         public bool Realtime { get => realtime; set => realtime = value; }
         public bool Log { get => log; set => log = value; }
@@ -28,7 +29,7 @@ namespace HeatmapParticles
         public VectorEvent onLogEvent;
         public IntEvent onPrepPlayback;
 
-        delegate bool GetInputPoint(Camera cam, out Vector3 point);
+        delegate bool GetInputPoint(Camera cam, out Vector3 point, int layerMask);
         GetInputPoint getter;
 
         private void Awake()
@@ -37,7 +38,18 @@ namespace HeatmapParticles
             if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
             if (points != null) points = ScriptableObject.CreateInstance<PointsList>();
 
-            if (input == InputSource.mousePos) getter = GetMousePos;
+            switch (input)
+            {
+                case InputSource.mousePos:
+                    getter = GetMousePos;
+                    break;
+                case InputSource.vrCameraGaze:
+                    getter = GetGazePos;
+                    break;
+            }
+
+            layerMask = 1 << Physics.IgnoreRaycastLayer;
+            layerMask = ~layerMask;
         }
 
         public void Playback()
@@ -52,7 +64,7 @@ namespace HeatmapParticles
                 timer += Time.deltaTime;
                 if (timer > waitTime)
                 {
-                    if (getter(cam, out Vector3 point))
+                    if (getter(cam, out Vector3 point, layerMask))
                     {
                         SmallVector3 toSave = new SmallVector3(point);
                         if (realtime)
@@ -63,7 +75,7 @@ namespace HeatmapParticles
                         {
                             points.Add(toSave);
                         }
-                        debugText.text = toSave.ToString();
+                        //debugText.text = toSave.ToString();
                     }
                     timer -= waitTime;
                 }
@@ -89,13 +101,30 @@ namespace HeatmapParticles
             if (resetLog) log = true;
         }
 
-        private static bool GetMousePos(Camera cam, out Vector3 point)
+        private static bool GetMousePos(Camera cam, out Vector3 point, int layerMask)
         {
             point = Input.mousePosition;
             point.z = cam.nearClipPlane;
             Ray r = cam.ScreenPointToRay(point);
 
-            if (Physics.Raycast(r, out RaycastHit hit))
+            if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
+            {
+                point = hit.point;
+                return true;
+            }
+            else { return false; }
+        }
+
+
+        // Replace this with eye tracking 
+        private static bool GetGazePos(Camera cam, out Vector3 point, int layerMask)
+        {
+            point = new Vector3(0.5f, 0.5f, 0f);
+
+            // Haven't really tested Mono vs left here
+            Ray r = cam.ViewportPointToRay(point, Camera.MonoOrStereoscopicEye.Mono);
+
+            if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
             {
                 point = hit.point;
                 return true;
@@ -139,7 +168,7 @@ namespace HeatmapParticles
 
     public enum InputSource
     {
-        mousePos
+        mousePos, vrCameraGaze
     }
 
     [System.Serializable]

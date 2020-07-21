@@ -4,7 +4,6 @@ using UnityEngine.UI;
 
 namespace HeatmapParticles
 {
-    [ExecuteInEditMode]
     public class HeatmapParticleSystem : PersistableObject
     {
         [SerializeField] HeatmapParticle particlePrefab;
@@ -18,11 +17,14 @@ namespace HeatmapParticles
         Collider[] collisions = new Collider[25];
 
         private float radius;
+        private int layerMask;
 
         private void Start()
         {
             particles = new List<HeatmapParticle>();
-            radius = particlePrefab.transform.localScale.x / 2;
+            radius = GameManager.Instance.particleSize / 2;
+            layerMask = 1 << Physics.IgnoreRaycastLayer;
+            layerMask = ~layerMask;
         }
 
         public void BulkSpawn(int toSpawn)
@@ -44,7 +46,7 @@ namespace HeatmapParticles
         private void ProcessPoint(Vector3 point)
         {
             currPoint = point;
-            int hits = Physics.OverlapSphereNonAlloc(point, radius, collisions);
+            int hits = Physics.OverlapSphereNonAlloc(point, radius, collisions, layerMask);
             bool hitParticle = false;
             for (int i = 0; i < hits; i++)
             {
