@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using HeatmapParticles.Utility;
 using UnityEngine;
 
 namespace HeatmapParticles

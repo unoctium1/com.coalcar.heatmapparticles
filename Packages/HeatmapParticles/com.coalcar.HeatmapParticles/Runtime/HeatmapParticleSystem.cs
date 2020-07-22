@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using HeatmapParticles.Utility;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +24,7 @@ namespace HeatmapParticles
         private void Start()
         {
             particles = new List<HeatmapParticle>();
-            radius = GameManager.Instance.particleSize / 2;
+            radius = ParticleManager.Instance.particleSize / 2;
             layerMask = 1 << Physics.IgnoreRaycastLayer;
             layerMask = ~layerMask;
         }

@@ -1972,6 +1972,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   logger: {fileID: 1135323900}
   system: {fileID: 1678941054}
+  particlePrefab: {fileID: 3498586226292998806, guid: e4df605d7cbc29049b6c82b87f8bef42,
+    type: 3}
+  particleSize: 0.01
 --- !u!4 &1471335303
 Transform:
   m_ObjectHideFlags: 0
