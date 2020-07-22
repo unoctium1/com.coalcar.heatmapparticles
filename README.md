@@ -8,6 +8,6 @@ Your package manifest should look like this:
 {
   "dependencies": {
     <other packages here>,
-    "com.coalcar.heatmapparticles": "https://github.com/unoctium1/HeatmapDemo.git"
+    "com.coalcar.heatmapparticles": "https://github.com/unoctium1/com.coalcar.heatmapparticles.git"
 }
 ```
