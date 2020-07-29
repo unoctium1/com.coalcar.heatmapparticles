@@ -1,5 +1,6 @@
 ﻿using HeatmapParticles.Utility;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -18,7 +19,8 @@ namespace HeatmapParticles
         [SerializeField, Tooltip("Controls speed of polling")] float waitTime;
         float timer = 0.0f;
         [SerializeField] InputSource input;
-        [SerializeField] bool realtime;
+        [SerializeField] bool realtime = false; //temporarily disabled realtime behavior
+        [SerializeField] HeatmapParticleSystem system; //tried to avoid coupling these but oh well
 
         private int layerMask;
 
@@ -35,7 +37,7 @@ namespace HeatmapParticles
         {
             if (onLogEvent == null) onLogEvent = new VectorEvent();
             if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
-            if (points != null) points = ScriptableObject.CreateInstance<PointsList>();
+            points = PointsList.Instance;
 
             switch (input)
             {
@@ -47,13 +49,24 @@ namespace HeatmapParticles
                     break;
             }
 
+            
             layerMask = 1 << Physics.IgnoreRaycastLayer;
             layerMask = ~layerMask;
+            
         }
 
         public void Playback()
         {
-            StartCoroutine(PlaybackPoints());
+            onPrepPlayback.Invoke(points.CountCurrent);
+            bool resetLog = false;
+            if (log)
+            {
+                log = false;
+                resetLog = true;
+            }
+            system.CreateFromDictionary(points.CurrDict);
+            //points.ClearCurrent();
+            if (resetLog) log = true;
         }
 
         private void FixedUpdate()
@@ -66,38 +79,17 @@ namespace HeatmapParticles
                     if (getter(cam, out Vector3 point, layerMask))
                     {
                         SmallVector3 toSave = new SmallVector3(point);
+                        points.Add(toSave);
+                        
                         if (realtime)
                         {
-                            onLogEvent.Invoke(toSave.GetVector3());
-                        }
-                        else
-                        {
-                            points.Add(toSave);
+                            onLogEvent.Invoke(toSave);
                         }
                         //debugText.text = toSave.ToString();
                     }
                     timer -= waitTime;
                 }
             }
-        }
-
-        private IEnumerator PlaybackPoints()
-        {
-            onPrepPlayback.Invoke(points.Count);
-            bool resetLog = false;
-            if (log)
-            {
-                log = false;
-                resetLog = true;
-            }
-            for (int i = 0; i < points.Count; i++)
-            {
-                yield return new WaitForFixedUpdate();
-                onLogEvent.Invoke(points[i].GetVector3());
-
-            }
-            points.Clear();
-            if (resetLog) log = true;
         }
 
         private static bool GetMousePos(Camera cam, out Vector3 point, int layerMask)
@@ -133,34 +125,21 @@ namespace HeatmapParticles
 
         public override void Load(DataReader reader)
         {
-            Debug.Log("Loading logger");
-            int count = reader.ReadInt();
-            if (points == null) points = ScriptableObject.CreateInstance<PointsList>();
-            else points.Clear();  
-            for (int i = 0; i < count; i++)
-            {
-                points.Add(SmallVector3.Load(reader));
-            }
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-                UnityEditor.EditorUtility.SetDirty(this);
-#endif
+            points.ClearCurrent();
+            PointsList.Instance.Load(reader);
+            points = PointsList.Instance;
         }
 
         public override void Save(DataWriter writer)
         {
-            writer.Write(points.Count);
-            for (int i = 0; i < points.Count; i++)
-            {
-                points[i].Save(writer);
-            }
+            points.Save(writer);
 
 
         }
 
         public void Clear()
         {
-            points.Clear();
+            points.ClearCurrent();
         }
 
     }
@@ -171,7 +150,7 @@ namespace HeatmapParticles
     }
 
     [System.Serializable]
-    public class VectorEvent : UnityEvent<Vector3>
+    public class VectorEvent : UnityEvent<SmallVector3>
     {
 
     }

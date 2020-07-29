@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using HeatmapParticles.Utility;
+using UnityEngine.UIElements;
 
 namespace HeatmapParticles
 {
@@ -9,13 +10,12 @@ namespace HeatmapParticles
     public class ParticleManagerEditor : Editor
     {
 
-        private Dictionary<SmallVector3, int> pointsDict;
-
         private SerializedProperty logger;
         private SerializedProperty system;
         private SerializedProperty size;
         private SerializedProperty particlePrefab;
         private PointsList pointsList;
+        private bool foldout;
 
         public void OnEnable()
         {
@@ -23,6 +23,7 @@ namespace HeatmapParticles
             system = serializedObject.FindProperty("system");
             size = serializedObject.FindProperty("particleSize");
             particlePrefab = serializedObject.FindProperty("particlePrefab");
+            foldout = false;
         }
 
         public override void OnInspectorGUI()
@@ -41,7 +42,7 @@ namespace HeatmapParticles
             {
                 Load(gm);
             }
-            if (pointsDict == null) GUI.enabled = false;
+            if (pointsList == null) GUI.enabled = false;
 
             if (GUILayout.Button(new GUIContent("Build Points")))
             {
@@ -63,7 +64,26 @@ namespace HeatmapParticles
                 ApplyParticleSize(size.floatValue);
             }
             GUI.enabled = true;
+            
+            foldout = EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Currently Tracked Points"));
+            if (pointsList)
+            {
+                EditorGUILayout.LabelField(pointsList.CountCurrent.ToString() + " points tracked");
+            }
+            else
+            {
+                if(GUILayout.Button(new GUIContent("Fetch Points"))){
+                    FetchPoints();
+                }
+            }
 
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+        }
+
+        private void FetchPoints()
+        {
+            pointsList = PointsList.Instance;
         }
 
         private void ApplyParticleSize(float size)
@@ -79,29 +99,14 @@ namespace HeatmapParticles
             {
                 gm.Load();
                 Logger log = logger.objectReferenceValue as Logger;
-                pointsList = log.points;
-
-                pointsDict = new Dictionary<SmallVector3, int>();
-
-                foreach (SmallVector3 point in pointsList.points)
-                {
-                    if (pointsDict.ContainsKey(point)) pointsDict[point]++;
-                    else pointsDict.Add(point, 1);
-                }
+                FetchPoints();
             }
 
         }
 
         private void BuildPoints(ParticleManager gm)
         {
-            float heightMult = gm.system.incrementVal;
-            foreach (KeyValuePair<SmallVector3, int> pair in pointsDict)
-            {
-                if (pair.Value == 1)
-                    gm.system.CreateParticleWithHeight(pair.Key.GetVector3());
-                else
-                    gm.system.CreateParticleWithHeight(pair.Key.GetVector3(), pair.Value * heightMult);
-            }
+            gm.system.CreateFromDictionary(pointsList.CurrDict);
         }
 
         private void Save(ParticleManager gm)
