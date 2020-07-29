@@ -21,6 +21,7 @@ namespace HeatmapParticles
         [SerializeField] bool realtime;
 
         private int layerMask;
+        
 
         public bool Realtime { get => realtime; set => realtime = value; }
         public bool Log { get => log; set => log = value; }
@@ -100,7 +101,7 @@ namespace HeatmapParticles
             if (resetLog) log = true;
         }
 
-        private static bool GetMousePos(Camera cam, out Vector3 point, int layerMask)
+        private bool GetMousePos(Camera cam, out Vector3 point, int layerMask)
         {
             point = Input.mousePosition;
             point.z = cam.nearClipPlane;
@@ -108,15 +109,18 @@ namespace HeatmapParticles
 
             if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
             {
-                point = hit.point;
+                //ObjectHit(hit, out point);
                 return true;
             }
-            else { return false; }
+            else {
+                //ObjectMiss();
+                return false;
+            }
         }
 
 
         // Replace this with eye tracking 
-        private static bool GetGazePos(Camera cam, out Vector3 point, int layerMask)
+        private bool GetGazePos(Camera cam, out Vector3 point, int layerMask)
         {
             point = new Vector3(0.5f, 0.5f, 0f);
 
@@ -125,10 +129,13 @@ namespace HeatmapParticles
 
             if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
             {
-                point = hit.point;
+                //ObjectHit(hit, out point);
                 return true;
             }
-            else { return false; }
+            else {
+                //ObjectMiss();
+                return false;
+            }
         }
 
         public override void Load(DataReader reader)
