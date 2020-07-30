@@ -11,8 +11,6 @@ namespace HeatmapParticles
     {
         //[SerializeField] float waitTime = 0.03f;
 
-        [SerializeField] public PointsList points;
-
         [SerializeField] Text debugText = null;
         [SerializeField, Tooltip("Set true to log on start")] bool log = false;
         [SerializeField] Camera cam;
@@ -37,7 +35,6 @@ namespace HeatmapParticles
         {
             if (onLogEvent == null) onLogEvent = new VectorEvent();
             if (onPrepPlayback == null) onPrepPlayback = new IntEvent();
-            points = PointsList.Instance;
 
             switch (input)
             {
@@ -57,14 +54,14 @@ namespace HeatmapParticles
 
         public void Playback()
         {
-            onPrepPlayback.Invoke(points.CountCurrent);
+            onPrepPlayback.Invoke(PointsList.Instance.CountCurrent);
             bool resetLog = false;
             if (log)
             {
                 log = false;
                 resetLog = true;
             }
-            system.CreateFromDictionary(points.CurrDict);
+            system.CreateFromDictionary(PointsList.Instance.CurrDict);
             //points.ClearCurrent();
             if (resetLog) log = true;
         }
@@ -79,7 +76,7 @@ namespace HeatmapParticles
                     if (getter(cam, out Vector3 point, layerMask))
                     {
                         SmallVector3 toSave = new SmallVector3(point);
-                        points.Add(toSave);
+                        PointsList.Instance.Add(toSave);
                         
                         if (realtime)
                         {
@@ -125,21 +122,20 @@ namespace HeatmapParticles
 
         public override void Load(DataReader reader)
         {
-            points.ClearCurrent();
+            PointsList.Instance.ClearCurrent();
             PointsList.Instance.Load(reader);
-            points = PointsList.Instance;
         }
 
         public override void Save(DataWriter writer)
         {
-            points.Save(writer);
+            PointsList.Instance.Save(writer);
 
 
         }
 
         public void Clear()
         {
-            points.ClearCurrent();
+            PointsList.Instance.ClearCurrent();
         }
 
     }

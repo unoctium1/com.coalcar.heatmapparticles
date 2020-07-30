@@ -6,8 +6,7 @@ using UnityEngine;
 
 namespace HeatmapParticles
 {
-    [CreateAssetMenu]
-    public class PointsList : PersistableScriptableObject
+    public class PointsList
     {
 
         static PointsList _instance = null;
@@ -15,9 +14,26 @@ namespace HeatmapParticles
         {
             get
             {
-                if (!_instance)
-                    _instance = Resources.FindObjectsOfTypeAll<PointsList>().FirstOrDefault();
+                if (_instance == null)
+                    _instance = new PointsList();
                 return _instance;
+            }
+        }
+
+        const string toFormat = "Heatmap {0} out of {1}\n";
+
+        public PointsList()
+        {
+            currIndex = 0;
+            points = new List<ListContainer>();
+            points.Add(new ListContainer
+            {
+                listTime = DateTime.Now,
+                dictionary = new Dictionary<SmallVector3, HeatmapInfo>()
+            });
+            if(CurrDict == null)
+            {
+                Debug.Log("Ya done fucked up");
             }
         }
 
@@ -63,7 +79,7 @@ namespace HeatmapParticles
         public void ClearCurrent()
         {
             if (points == null) return;
-            if (points[currIndex].dictionary == null) return;
+            if (points.Count == 0 || points[currIndex].dictionary == null) return;
             else points[currIndex].dictionary.Clear();
         }
 
@@ -122,8 +138,30 @@ namespace HeatmapParticles
             }
         }
 
-        private void InitializeCurrElement()
+        public void ResetTime()
         {
+            if (points[currIndex].dictionary == null)
+            {
+                InitializeCurrElement();
+            }
+            else
+            {
+                ListContainer container = points[currIndex];
+                container.listTime = DateTime.Now;
+                points[currIndex] = container;
+            }
+
+        }
+
+        public void InitializeCurrElement()
+        {
+            if(points.Count == 0)
+            {
+                points.Add(new ListContainer
+                {
+
+                });
+            }
             points[currIndex] = new ListContainer
             {
                 dictionary = new Dictionary<SmallVector3, HeatmapInfo>(),
@@ -131,7 +169,7 @@ namespace HeatmapParticles
             };
         }
 
-        public override void Save(DataWriter writer)
+        public void Save(DataWriter writer)
         {
             writer.Write(points.Count);
             writer.Write(currIndex);
@@ -141,7 +179,7 @@ namespace HeatmapParticles
             }
         }
 
-        public override void Load(DataReader reader)
+        public void Load(DataReader reader)
         {
             points = new List<ListContainer>();
             int count = reader.ReadInt();
@@ -152,6 +190,16 @@ namespace HeatmapParticles
                 
             }
 
+        }
+
+        public string GetInfo()
+        {
+            return string.Format(toFormat, currIndex + 1, points.Count);
+        }
+
+        public string GetDateTime()
+        {
+            return points[currIndex].listTime.ToShortDateString() + " " + points[currIndex].listTime.ToLongTimeString();
         }
 
     }
@@ -198,9 +246,13 @@ namespace HeatmapParticles
         {
             Dictionary<SmallVector3, HeatmapInfo> dict = new Dictionary<SmallVector3, HeatmapInfo>();
             int pointCount = reader.ReadInt();
-            for (int j = 0; j < pointCount; j++)
+            dict.Clear();
+            for (int j= 0; j < pointCount; j++)
             {
-                dict.Add(SmallVector3.Load(reader), HeatmapInfo.Load(reader));
+                SmallVector3 key = SmallVector3.Load(reader);
+                HeatmapInfo value = HeatmapInfo.Load(reader);
+                if (dict.ContainsKey(key)) dict[key] = value;
+                else dict.Add(key, value);
             }
             return new ListContainer
             {

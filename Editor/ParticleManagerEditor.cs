@@ -1,8 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
-using System.Collections.Generic;
-using HeatmapParticles.Utility;
-using UnityEngine.UIElements;
+using UnityEditor.SceneManagement;
+using Scene = UnityEngine.SceneManagement.Scene;
 
 namespace HeatmapParticles
 {
@@ -16,6 +15,10 @@ namespace HeatmapParticles
         private SerializedProperty particlePrefab;
         private PointsList pointsList;
         private bool foldout;
+        private bool configureParticle;
+        private bool builtPoints;
+
+        private Scene poolScene;
 
         public void OnEnable()
         {
@@ -24,6 +27,17 @@ namespace HeatmapParticles
             size = serializedObject.FindProperty("particleSize");
             particlePrefab = serializedObject.FindProperty("particlePrefab");
             foldout = false;
+            configureParticle = false;
+            builtPoints = false;
+            EditorApplication.playModeStateChanged += ClearParticleFactoryScene;
+        }
+
+        private void ClearParticleFactoryScene(PlayModeStateChange obj)
+        {
+            if (poolScene.IsValid())
+                {
+                    EditorSceneManager.UnloadSceneAsync(poolScene);
+                }
         }
 
         public override void OnInspectorGUI()
@@ -50,35 +64,83 @@ namespace HeatmapParticles
             }
             GUI.enabled = true;
 
+            if (!builtPoints) GUI.enabled = false;
+            if (GUILayout.Button(new GUIContent("Remove Points")))
+            {
+                RemovePoints(gm);
+            }
+            GUI.enabled = true;
+
+
             if (GUILayout.Button(new GUIContent("Save Points")))
             {
                 Save(gm);
             }
 
-            EditorGUILayout.PropertyField(size, new GUIContent("Particle Size"));
-            EditorGUILayout.PropertyField(particlePrefab, new GUIContent("Particle Prefab"));
-            serializedObject.ApplyModifiedProperties();
-            if (particlePrefab.objectReferenceValue == null) GUI.enabled = false;
-            if (GUILayout.Button(new GUIContent("Apply Particle Size")))
+            configureParticle = EditorGUILayout.BeginFoldoutHeaderGroup(configureParticle, new GUIContent("Particle Configuration Settings"));
+            if (configureParticle)
             {
-                ApplyParticleSize(size.floatValue);
+                EditorGUILayout.PropertyField(size, new GUIContent("Particle Size"));
+                EditorGUILayout.PropertyField(particlePrefab, new GUIContent("Particle Prefab"));
+                serializedObject.ApplyModifiedProperties();
+                if (particlePrefab.objectReferenceValue == null) GUI.enabled = false;
+                if (GUILayout.Button(new GUIContent("Apply Particle Size")))
+                {
+                    ApplyParticleSize(size.floatValue);
+                }
+                GUI.enabled = true;
             }
-            GUI.enabled = true;
-            
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
             foldout = EditorGUILayout.BeginFoldoutHeaderGroup(foldout, new GUIContent("Currently Tracked Points"));
-            if (pointsList)
+            if (foldout)
             {
-                EditorGUILayout.LabelField(pointsList.CountCurrent.ToString() + " points tracked");
-            }
-            else
-            {
-                if(GUILayout.Button(new GUIContent("Fetch Points"))){
-                    FetchPoints();
+                if (pointsList != null)
+                {
+                    EditorGUILayout.LabelField(pointsList.GetInfo());
+                    EditorGUILayout.LabelField(pointsList.GetDateTime());
+                    EditorGUILayout.LabelField(pointsList.CountCurrent.ToString() + " points tracked");
+
+                    if (GUILayout.Button("Clear/Reinitialize"))
+                    {
+                        pointsList.InitializeCurrElement();
+                    }
+
+                    if (GUILayout.Button("Reset Time"))
+                    {
+                        pointsList.ResetTime();
+                    }
+
+                    if (GUILayout.Button("Add new/Move up"))
+                    {
+                        pointsList.MoveUp();
+                    }
+
+                    if (GUILayout.Button("Move down"))
+                    {
+                        pointsList.MoveDown();
+                    }
+
+                }
+                else
+                {
+                    EditorGUILayout.LabelField(new GUIContent("Hit 'Load Points' first"));
                 }
             }
 
             EditorGUILayout.EndFoldoutHeaderGroup();
 
+        }
+
+        private void RemovePoints(ParticleManager gm)
+        {
+            if (poolScene.IsValid())
+            {
+                gm.system.Clear();
+                EditorSceneManager.UnloadSceneAsync(poolScene);
+                
+                builtPoints = false;
+            }
         }
 
         private void FetchPoints()
@@ -107,6 +169,8 @@ namespace HeatmapParticles
         private void BuildPoints(ParticleManager gm)
         {
             gm.system.CreateFromDictionary(pointsList.CurrDict);
+            poolScene = gm.system.factory.poolScene;
+            builtPoints = true;
         }
 
         private void Save(ParticleManager gm)

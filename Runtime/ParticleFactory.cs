@@ -16,7 +16,7 @@ namespace HeatmapParticles
         [SerializeField, Tooltip("When pooled objects drop below this, spawn in bulk in a coroutine. Set negative to disable bulk spawning")] int minCount = 50;
 
         [System.NonSerialized] List<HeatmapParticle> pool;
-        private Scene poolScene;
+        public Scene poolScene;
         [System.NonSerialized] bool isSpawningMany = false;
 
         void CreatePool()
@@ -46,7 +46,7 @@ namespace HeatmapParticles
         public HeatmapParticle GetInEditor()
         {
             HeatmapParticle instance;
-            if (pool == null)
+            if (pool == null || !poolScene.IsValid())
             {
                 CreatePoolInEditor();
             }
