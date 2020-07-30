@@ -24,7 +24,6 @@ namespace HeatmapParticles
 
         private int layerMask;
 
-
         public bool Realtime { get => realtime; set => realtime = value; }
         public bool Log { get => log; set => log = value; }
 
@@ -93,6 +92,25 @@ namespace HeatmapParticles
             }
         }
 
+        private IEnumerator PlaybackPoints()
+        {
+            onPrepPlayback.Invoke(points.Count);
+            bool resetLog = false;
+            if (log)
+            {
+                log = false;
+                resetLog = true;
+            }
+            for (int i = 0; i < points.Count; i++)
+            {
+                yield return new WaitForFixedUpdate();
+                onLogEvent.Invoke(points[i].GetVector3());
+
+            }
+            points.Clear();
+            if (resetLog) log = true;
+        }
+
         private static bool GetMousePos(Camera cam, out Vector3 point, int layerMask)
         {
             point = Input.mousePosition;
@@ -101,18 +119,15 @@ namespace HeatmapParticles
 
             if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
             {
-                //ObjectHit(hit, out point);
+                point = hit.point;
                 return true;
             }
-            else {
-                //ObjectMiss();
-                return false;
-            }
+            else { return false; }
         }
 
 
         // Replace this with eye tracking
-        private bool GetGazePos(Camera cam, out Vector3 point, int layerMask)
+        private static bool GetGazePos(Camera cam, out Vector3 point, int layerMask)
         {
             point = new Vector3(0.5f, 0.5f, 0f);
 
@@ -121,13 +136,10 @@ namespace HeatmapParticles
 
             if (Physics.Raycast(r, out RaycastHit hit, 50f, layerMask))
             {
-                //ObjectHit(hit, out point);
+                point = hit.point;
                 return true;
             }
-            else {
-                //ObjectMiss();
-                return false;
-            }
+            else { return false; }
         }
 
         public override void Load(DataReader reader)

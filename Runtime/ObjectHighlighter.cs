@@ -1,5 +1,4 @@
-﻿using cakeslice;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,36 +7,34 @@ namespace HeatmapParticles
     public class ObjectHighlighter : MonoBehaviour
     {
         [SerializeField] private Material m_material;
-        [SerializeField] private Outline m_outline;
-
         private bool m_isGlowing = false;
 
         void OnEnable()
         {
-            m_outline.enabled = false;
+            m_material.color = Color.black;
         }
 
         public void ToggleHighlite(bool val)
         {
             if (val)
             {
-                //ActivateHighlight();
+                ActivateHighlight();
             }
             else
             {
-                //DeactivateHighlight();
+                DeactivateHighlight();
             }
         }
         
         public void ActivateHighlight()
         {
             if (!m_isGlowing)
-                m_outline.enabled = true;
+                m_material.color = Color.blue;
         }
 
         public void DeactivateHighlight()
         {
-            m_outline.enabled = false;
+            m_material.color = Color.black;
         }
     }
 }
