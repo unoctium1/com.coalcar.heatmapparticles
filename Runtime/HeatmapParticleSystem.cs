@@ -10,7 +10,7 @@ namespace HeatmapParticles
     {
         [SerializeField] HeatmapParticle particlePrefab;
         [SerializeField] public float incrementVal = 0.05f;
-        public ParticleFactory factory;
+        [SerializeField] ParticleFactory factory;
 
         [SerializeField] Dictionary<SmallVector3, HeatmapParticle> particles;
         [SerializeField] Text debugText;
@@ -150,7 +150,6 @@ namespace HeatmapParticles
 
         public void Clear()
         {
-            if (particles == null) return;
             foreach (HeatmapParticle p in particles.Values)
             {
                 factory.Reclaim(p);
