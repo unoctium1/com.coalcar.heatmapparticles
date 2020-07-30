@@ -6,10 +6,21 @@ namespace HeatmapParticles
     [ExecuteInEditMode]
     public class ParticleManager : PersistableObject
     {
-        public static ParticleManager Instance { get; set; }
+        public static ParticleManager Instance
+        {
+            get
+            {
+                if (!_instance)
+                    _instance = GameObject.FindObjectOfType<ParticleManager>();
+                return _instance;
+            }
+        }
+        private static ParticleManager _instance = null;
         Saver saver;
         [SerializeField] public Logger logger;
         [SerializeField] public HeatmapParticleSystem system;
+
+        private PointsList points;
 
 #if UNITY_EDITOR
         [SerializeField] public GameObject particlePrefab;
@@ -20,7 +31,6 @@ namespace HeatmapParticles
 
         void Awake()
         {
-            if (Instance == null) Instance = this;
             saver = GetComponent<Saver>();
         }
 
@@ -37,7 +47,10 @@ namespace HeatmapParticles
 
         public void Load()
         {
+            if(Application.isPlaying)
+                system.Clear();
             saver.Load(this);
+            
         }
 
         public void HideActiveParticles()
@@ -56,6 +69,7 @@ namespace HeatmapParticles
             system.UnhideParticles();
             logger.Log = true;
         }
+        
 
         public void StartLogging_NonRealtime()
         {
@@ -79,13 +93,11 @@ namespace HeatmapParticles
         public override void Save(DataWriter writer)
         {
             logger.Save(writer);
-            system.Save(writer);
         }
 
         public override void Load(DataReader reader)
         {
             logger.Load(reader);
-            system.Load(reader);
         }
     }
 }
