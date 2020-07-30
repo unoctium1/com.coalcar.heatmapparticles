@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using UnityEngine;
 
 namespace HeatmapParticles
@@ -43,11 +42,6 @@ namespace HeatmapParticles
                 writer.Write(value.x);
                 writer.Write(value.y);
                 writer.Write(value.z);
-            }
-
-            public void Write(DateTime time)
-            {
-                writer.Write(time.ToFileTime());
             }
         }
     }

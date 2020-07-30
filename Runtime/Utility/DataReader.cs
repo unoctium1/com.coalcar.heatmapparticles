@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using UnityEngine;
 
 namespace HeatmapParticles
@@ -48,12 +47,6 @@ namespace HeatmapParticles
 				value.z = reader.ReadSingle();
 				return value;
 			}
-
-			public DateTime ReadDateTime()
-            {
-				long fileTime = reader.ReadInt64();
-				return DateTime.FromFileTime(fileTime);
-            }
 		}
 	}
 }

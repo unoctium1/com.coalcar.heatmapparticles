@@ -6,29 +6,27 @@ using UnityEngine.UI;
 
 namespace HeatmapParticles
 {
-    public class HeatmapParticleSystem : MonoBehaviour
+    public class HeatmapParticleSystem : PersistableObject
     {
         [SerializeField] HeatmapParticle particlePrefab;
         [SerializeField] public float incrementVal = 0.05f;
         [SerializeField] ParticleFactory factory;
 
-        [SerializeField] Dictionary<SmallVector3, HeatmapParticle> particles;
+        [SerializeField] List<HeatmapParticle> particles;
         [SerializeField] Text debugText;
         [SerializeField] Vector3 currPoint;
-        PointsList points;
 
-        //Collider[] collisions = new Collider[25];
+        Collider[] collisions = new Collider[25];
 
         private float radius;
-        //private int layerMask;
+        private int layerMask;
 
         private void Start()
         {
-            particles = new Dictionary<SmallVector3, HeatmapParticle>();
+            particles = new List<HeatmapParticle>();
             radius = ParticleManager.Instance.particleSize / 2;
-            points = PointsList.Instance;
-            //layerMask = 1 << Physics.IgnoreRaycastLayer;
-            //layerMask = ~layerMask;
+            layerMask = 1 << Physics.IgnoreRaycastLayer;
+            layerMask = ~layerMask;
         }
 
         public void BulkSpawn(int toSpawn)
@@ -36,43 +34,17 @@ namespace HeatmapParticles
             StartCoroutine(factory.SpawnMany(toSpawn));
         }
 
-        
-        public void SpawnAtPoint(SmallVector3 point)
+        public void SpawnAtPoint(Vector3 point)
         {
-            int height = points.CurrDict[point].height;
-            if (particles.TryGetValue(point, out HeatmapParticle p))
-            {
-                p.Height = height * incrementVal;
-            }
-            else
-            {
-                if (height == 1)
-                    CreateParticleWithHeight(point);
-                else
-                    CreateParticleWithHeight(point, height * incrementVal);
-            }
-            
+
+            ProcessPoint(point);
             //StartCoroutine(ProcessPoint(point));
 #if UNITY_EDITOR
             if (debugText) debugText.text = particles.Count.ToString();
 #endif
 
         }
-        
 
-        public void CreateFromDictionary(Dictionary<SmallVector3, HeatmapInfo> dict)
-        {
-            Clear();
-            foreach (KeyValuePair<SmallVector3, HeatmapInfo> pair in dict)
-            {
-                if (pair.Value.height == 1)
-                    CreateParticleWithHeight(pair.Key);
-                else
-                    CreateParticleWithHeight(pair.Key, pair.Value.height * incrementVal);
-            }
-        }
-
-        /* Temporarily removing realtime capability
         private void ProcessPoint(Vector3 point)
         {
             currPoint = point;
@@ -95,32 +67,18 @@ namespace HeatmapParticles
                 particles.Add(particle);
             }
         }
-        */
 
 
-
-        public void CreateParticleWithHeight(SmallVector3 point, float height = 0.01f)
-        {
-            if (particles == null) particles = new Dictionary<SmallVector3, HeatmapParticle>();
-            HeatmapParticle p;
-            if (particles.TryGetValue(point, out  p))
-            {
-                Debug.Log("particle already exists!");
-            }
-            else
-            {
-                p =
 #if UNITY_EDITOR
-                Application.isPlaying ? factory.Get(this) : factory.GetInEditor();
-#else
-                factory.Get(this);
-#endif
-                p.transform.position = point.GetVector3();
-                p.Height = height;
-                particles.Add(point, p);
-            }
+        public void CreateParticleWithHeight(Vector3 point, float height = 0.01f)
+        {
+            if (particles == null) particles = new List<HeatmapParticle>();
+            HeatmapParticle p = factory.GetInEditor();
+            p.transform.position = point;
+            p.Height = height;
+            particles.Add(p);
         }
-
+#endif
 
         private void OnDrawGizmosSelected()
         {
@@ -133,7 +91,7 @@ namespace HeatmapParticles
 
         public void HideParticles()
         {
-            foreach (HeatmapParticle p in particles.Values)
+            foreach (HeatmapParticle p in particles)
             {
                 p.gameObject.SetActive(false);
             }
@@ -141,16 +99,46 @@ namespace HeatmapParticles
 
         public void UnhideParticles()
         {
-            foreach (HeatmapParticle p in particles.Values)
+            foreach (HeatmapParticle p in particles)
             {
                 p.gameObject.SetActive(true);
             }
         }
 
+        public override void Load(DataReader reader)
+        {
+            int count = reader.ReadInt();
+
+            
+            particles = new List<HeatmapParticle>();
+            if (Application.isPlaying)
+                BulkSpawn(count);
+            for (int i = 0; i < count; i++)
+            {
+                HeatmapParticle p = Application.isPlaying ? factory.Get(this) : factory.GetInEditor();
+                p.Load(reader);
+                particles.Add(p);
+            }
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorUtility.SetDirty(this);
+#endif
+
+        }
+
+        public override void Save(DataWriter writer)
+        {
+            writer.Write(particles.Count);
+            for (int i = 0; i < particles.Count; i++)
+            {
+                particles[i].Save(writer);
+            }
+        }
 
         public void Clear()
         {
-            foreach (HeatmapParticle p in particles.Values)
+            foreach (HeatmapParticle p in particles)
             {
                 factory.Reclaim(p);
             }

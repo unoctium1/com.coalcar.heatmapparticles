@@ -11,8 +11,6 @@ namespace HeatmapParticles
         [SerializeField] public Logger logger;
         [SerializeField] public HeatmapParticleSystem system;
 
-        private PointsList points;
-
 #if UNITY_EDITOR
         [SerializeField] public GameObject particlePrefab;
 #endif
@@ -39,9 +37,7 @@ namespace HeatmapParticles
 
         public void Load()
         {
-            system.Clear();
             saver.Load(this);
-            
         }
 
         public void HideActiveParticles()
@@ -60,7 +56,6 @@ namespace HeatmapParticles
             system.UnhideParticles();
             logger.Log = true;
         }
-        
 
         public void StartLogging_NonRealtime()
         {
@@ -84,11 +79,13 @@ namespace HeatmapParticles
         public override void Save(DataWriter writer)
         {
             logger.Save(writer);
+            system.Save(writer);
         }
 
         public override void Load(DataReader reader)
         {
             logger.Load(reader);
+            system.Load(reader);
         }
     }
 }
