@@ -8,7 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: HeatmapParticle
-  m_Shader: {fileID: 4800000, guid: 1dc790465021b4941b7e97fedec268b2, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 251a2441acb6b8a48b6f73b8d3d98894,
+    type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1

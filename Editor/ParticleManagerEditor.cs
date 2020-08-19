@@ -128,8 +128,9 @@ namespace HeatmapParticles
                 }
             }
 
+            
             EditorGUILayout.EndFoldoutHeaderGroup();
-
+            serializedObject.ApplyModifiedProperties();
         }
 
         private void RemovePoints(ParticleManager gm)
