@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+#if UNITY_EDITOR
 using UnityEditor.SceneManagement;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -22,6 +24,7 @@ namespace HeatmapParticles
         void CreatePool()
         {
             pool = new List<HeatmapParticle>();
+#if UNITY_EDITOR
             if (Application.isEditor)
             {
                 poolScene = SceneManager.GetSceneByName(name);
@@ -39,10 +42,11 @@ namespace HeatmapParticles
                     return;
                 }
             }
+#endif
             poolScene = SceneManager.CreateScene(name);
         }
 
-
+#if UNITY_EDITOR
         public HeatmapParticle GetInEditor()
         {
             HeatmapParticle instance;
@@ -80,7 +84,7 @@ namespace HeatmapParticles
             poolScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             poolScene.name = name;
         }
-
+#endif
         public HeatmapParticle Get(MonoBehaviour owningObject)
         {
             HeatmapParticle instance;
